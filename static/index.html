@@ -52,7 +52,7 @@
         const questionContainer = document.querySelector('.container');
         const cardBody = questionContainer.querySelector('.card-body');
         const titleElement = document.querySelector('.card-title');
-
+    
         function loadQuestion() {
             questionContainer.classList.add('fade');
             setTimeout(() => {
@@ -60,7 +60,11 @@
                     .then(response => response.json())
                     .then(data => {
                         if (!data.detail) {
-                            titleElement.textContent = `Q${currentQuestion}: ${data.question}`;
+                            if (currentQuestion === 1) {
+                                titleElement.innerHTML = `<div style="margin-bottom: 16px;">How likely are you to doze off or fall asleep in the following situation? You should rate your chances of dozing off, not just feeling tired. Even if you have not done some of these things recently try to determine how they would have affected you.</div>Q${currentQuestion}: ${data.question}`;
+                            } else {
+                                titleElement.textContent = `Q${currentQuestion}: ${data.question}`;
+                            }
                             cardBody.innerHTML = `<div>${data.options.map((option, index) => 
                                 `<div class="form-check">
                                     <input class="form-check-input" type="radio" name="option" id="option${index}" value="${option}">
@@ -69,9 +73,6 @@
                             ).join('')}
                             <button class="btn btn-primary btn-custom" onclick="submitAnswer()">Submit</button>
                             </div>`;
-                            if (currentQuestion === 1) {
-                                titleElement.innerHTML = `Q${currentQuestion}: ${data.question}<br><small>How likely are you to doze off or fall asleep in the following situation? You should rate your chances of dozing off, not just feeling tired. Even if you have not done some of these things recently try to determine how they would have affected you.</small>`;
-                            }
                         } else {
                             titleElement.textContent = "Please enter your phone number"; // Update title for phone number entry
                             cardBody.innerHTML = `<div class="mb-3">
@@ -84,7 +85,7 @@
                     });
             }, 500);
         }
-
+    
         function submitAnswer() {
             const selectedOption = document.querySelector('input[name="option"]:checked').value;
             questionContainer.classList.add('fade');
@@ -101,7 +102,7 @@
                 });
             }, 500);
         }
-
+    
         function submitPhone() {
             const phone = document.getElementById('user-phone').value;
             if (phone.length != 10 || isNaN(phone)) {
@@ -126,6 +127,6 @@
             }, 500);
         }
         window.onload = loadQuestion;
-    </script>
+    </script>       
 </body>
 </html>
