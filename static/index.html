@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Epworth</title>
+    <title>Sleep Scale</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body, html {
@@ -52,35 +52,35 @@
         const questionContainer = document.querySelector('.container');
         const cardBody = questionContainer.querySelector('.card-body');
 
-    function loadQuestion() {
-        questionContainer.classList.add('fade');
-        setTimeout(() => {
-            fetch(`/questions/${currentQuestion}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.detail) {
-                        cardBody.innerHTML = `<h5 class="card-title">${data.question}</h5>
-                            <div>${data.options.map((option, index) => 
-                                `<div class="form-check">
-                                    <input class="form-check-input" type="radio" name="option" id="option${index}" value="${option}">
-                                    <label class="form-check-label" for="option${index}">${option}</label>
-                                </div>`
-                            ).join('')}
-                            <button class="btn btn-primary btn-custom" onclick="submitAnswer()">Submit</button>
+        function loadQuestion() {
+            questionContainer.classList.add('fade');
+            setTimeout(() => {
+                fetch(`/questions/${currentQuestion}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.detail) {
+                            cardBody.innerHTML = `<h5 class="card-title">${data.question}</h5>
+                                <div>${data.options.map((option, index) => 
+                                    `<div class="form-check">
+                                        <input class="form-check-input" type="radio" name="option" id="option${index}" value="${option}">
+                                        <label class="form-check-label" for="option${index}">${option}</label>
+                                    </div>`
+                                ).join('')}
+                                <button class="btn btn-primary btn-custom" onclick="submitAnswer()">Submit</button>
+                                </div>`;
+                        } else {
+                            const title = document.querySelector('.card-title');
+                            title.textContent = "Please enter your phone number"; // Update title for phone number entry
+                            cardBody.innerHTML = `<div class="mb-3">
+                                <label for="user-phone" class="form-label">Phone Number</label>
+                                <input type="text" class="form-control" id="user-phone" placeholder="Enter your phone number" pattern="\\d{10}">
+                                <button class="btn btn-success btn-custom" onclick="submitPhone()">Submit Phone</button>
                             </div>`;
-                    } else {
-                        const title = document.querySelector('.card-title');
-                        title.textContent = "Please enter your email address"; // Update title for email entry
-                        cardBody.innerHTML = `<div class="mb-3">
-                            <label for="user-email" class="form-label">Email address</label>
-                            <input type="email" class="form-control" id="user-email" placeholder="Enter your email">
-                            <button class="btn btn-success btn-custom" onclick="submitEmail()">Submit Email</button>
-                        </div>`;
-                    }
-                    questionContainer.classList.remove('fade');
-                });
-        }, 500);
-    }
+                        }
+                        questionContainer.classList.remove('fade');
+                    });
+            }, 500);
+        }
 
 
         function submitAnswer() {
@@ -100,26 +100,30 @@
             }, 500);
         }
 
-    function submitEmail() {
-        const email = document.getElementById('user-email').value;
-        questionContainer.classList.add('fade');
-        setTimeout(() => {
-            fetch(`/submit_email`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `email=${encodeURIComponent(email)}`
-            }).then(response => response.json())
-            .then(data => {
-                const title = document.querySelector('.card-title');
-                title.textContent = "Your Results";  // Update the title to reflect the final state
-                cardBody.innerHTML = `<p class='alert alert-success'>Thank you for participating!</p>
-                                    <p>${data.interpretation}</p>`; // Use "interpretation" from the response
-                questionContainer.classList.remove('fade');
-            });
-        }, 500);
-    }
+        function submitPhone() {
+            const phone = document.getElementById('user-phone').value;
+            if (phone.length != 10 || isNaN(phone)) {
+                alert("Invalid phone number.");
+                return;
+            }
+            questionContainer.classList.add('fade');
+            setTimeout(() => {
+                fetch(`/submit_phone`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `phone=${encodeURIComponent(phone)}`
+                }).then(response => response.json())
+                .then(data => {
+                    const title = document.querySelector('.card-title');
+                    title.textContent = "Your Results";  // Update the title to reflect the final state
+                    cardBody.innerHTML = `<p class='alert alert-success'>Thank you for participating!</p>
+                                        <p>${data.interpretation}</p>`; // Use "interpretation" from the response
+                    questionContainer.classList.remove('fade');
+                });
+            }, 500);
+        }
         window.onload = loadQuestion;
     </script>
 </body>

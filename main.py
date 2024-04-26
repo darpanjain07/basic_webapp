@@ -3,12 +3,30 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import csv
 from uuid import uuid4
+import os
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+if creds_json is None:
+    raise ValueError("Missing GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable")
+
+# Load credentials from json
+creds_dict = json.loads(creds_json)
+creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+SPREADSHEET_ID = "1ovBjlk7I-l5rv87pIbKZCFjhmAeODxee_6nCCKSlkl8"
+
+service = build('sheets', 'v4', credentials=creds)
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Predefined questions and options with associated scores
 questions = [
     {"question": "Sitting and reading", "options": ["No chance of dozing", "Slight chance of dozing", "Moderate chance of dozing", "High chance of dozing"]},
     {"question": "Watching TV", "options": ["No chance of dozing", "Slight chance of dozing", "Moderate chance of dozing", "High chance of dozing"]},
@@ -20,20 +38,22 @@ questions = [
     {"question": "In a car, while stopped for a few minutes in traffic", "options": ["No chance of dozing", "Slight chance of dozing", "Moderate chance of dozing", "High chance of dozing"]}
 ]
 
-# Temporary storage for responses
 responses = {}
 csv_file_path = "responses.csv"
 
-# Ensure CSV has the correct headers upon server start
-def initialize_csv():
-    with open(csv_file_path, "a", newline='') as file:
-        writer = csv.writer(file)
-        # Check if file is empty to write headers
-        if file.tell() == 0:
-            headers = ["email_id"] + [f"question{i+1}" for i in range(len(questions))] + ["total_score", "interpretation"]
-            writer.writerow(headers)
-
-initialize_csv()
+def write_to_sheet(data):
+    # Example: Append the data to the sheet
+    sheet = service.spreadsheets()
+    body = {
+        'values': [data]
+    }
+    result = sheet.values().append(
+        spreadsheetId=SPREADSHEET_ID,
+        range="Sheet1",  # Change if your sheet's name is different
+        valueInputOption="USER_ENTERED",
+        body=body
+    ).execute()
+    print(f"{result.get('updates').get('updatedCells')} cells appended.")
 
 @app.get("/")
 async def root():
@@ -63,8 +83,11 @@ async def submit_response(question_id: int, choice: str = Form(...)):
     
     return {"question_id": question_id, "selected_option": choice, "score": score}
 
-@app.post("/submit_email")
-async def submit_email(email: str = Form(...)):
+@app.post("/submit_phone")
+async def submit_phone(phone: str = Form(...)):
+    if not phone.isdigit() or len(phone) != 10:
+        raise HTTPException(status_code=400, detail="Invalid phone number. It must be exactly 10 digits.")
+    
     session_id = responses.get('current_session_id')
     if session_id:
         total_score = sum(responses[session_id]['scores'])
@@ -77,15 +100,14 @@ async def submit_email(email: str = Form(...)):
         else:
             interpretation = "You are excessively sleepy and should consider seeking medical attention."
         
-        with open(csv_file_path, "a", newline='') as file:
-            writer = csv.writer(file)
-            row = [email, *responses[session_id]['scores'], total_score, interpretation]
-            writer.writerow(row)
+        data_row = [phone, *responses[session_id]['scores'], total_score, interpretation]
+        write_to_sheet(data_row)
         
+        # Clean up local response data
         del responses[session_id]
         del responses['current_session_id']
         
-        return {"email": email, "total_score": total_score, "interpretation": interpretation}
+        return {"phone": phone, "total_score": total_score, "interpretation": interpretation}
 
 if __name__ == "__main__":
     import uvicorn
