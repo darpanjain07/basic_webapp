@@ -93,21 +93,25 @@ async def submit_phone(phone: str = Form(...)):
         total_score = sum(responses[session_id]['scores'])
         if total_score < 8:
             interpretation = "It is unlikely that you are abnormally sleepy."
+            risk_level_short = "nil_risk"
         elif total_score < 10:
             interpretation = "You have an average amount of daytime sleepiness."
+            risk_level_short = "low_risk"
         elif total_score < 16:
             interpretation = "You may be excessively sleepy depending on the situation. You may want to consider seeking medical attention."
+            risk_level_short = "moderate_risk"
         else:
             interpretation = "You are excessively sleepy and should consider seeking medical attention."
+            risk_level_short = "high_risk"
         
-        data_row = [phone, *responses[session_id]['scores'], total_score, interpretation]
+        data_row = [phone, *responses[session_id]['scores'], total_score, interpretation, risk_level_short]
         write_to_sheet(data_row)
         
         # Clean up local response data
         del responses[session_id]
         del responses['current_session_id']
         
-        return {"phone": phone, "total_score": total_score, "interpretation": interpretation}
+        return {"phone": phone, "total_score": total_score, "interpretation": interpretation, "risk_level_short": risk_level_short}
 
 if __name__ == "__main__":
     import uvicorn
